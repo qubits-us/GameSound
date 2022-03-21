@@ -23,6 +23,7 @@ type
     procedure btnBGStartClick(Sender: TObject);
     procedure btnBGStopClick(Sender: TObject);
     procedure OnSoundLoaded(Sender:tObject;aSoundID:integer;aStatus:integer);
+    procedure OnMusicError(Sender:TObject;aErrorMsg:String);
   private
     { Private declarations }
   public
@@ -46,6 +47,13 @@ TGPUObjectsPool.Instance.Free;
 {$ENDIF}
 end;
 
+
+procedure TMainFrm.OnMusicError(Sender: TObject; aErrorMsg: string);
+begin
+
+memDisplay.Lines.Insert(0,aErrorMsg);
+
+end;
 
 
 procedure TMainFrm.btnBGStartClick(Sender: TObject);
@@ -83,6 +91,7 @@ procedure TMainFrm.btnCreateClick(Sender: TObject);
 begin
 try
 GameSound:=tGameSound.Create;
+GameSound.OnMusicError:=OnMusicError;
 {$IFDEF ANDROID}
 GameSound.OnLoadCompleted:=OnSoundLoaded;
 {$ENDIF}
