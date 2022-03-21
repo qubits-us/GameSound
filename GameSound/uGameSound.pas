@@ -1,3 +1,23 @@
+{Unit GameSound -provides basic background mucis and game sounds.
+           Compatible with Windows and Android
+
+  created:3/21/22 -q
+
+Acknowledgements/Credits - This was a derived work from clos examination of the Audio Manager- Author Jim McKeeth
+                           Also Audio Manager released by FMXExpress.com
+                           Bit and pieces from StackOverFlow allowed for SoundLoadedListener - Remy Lebuae
+
+                           Would not have been possible without you, THANK YOU!!!
+
+
+Uses new PoolBuilder for lollipops and higher..
+
+
+
+
+           }
+
+
 unit uGameSound;
 
 interface
