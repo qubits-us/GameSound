@@ -40,6 +40,9 @@ const
    CT_SONIF    = 4;
    LOLLIPOP    = 21;
 
+type
+   tMusicError_Event = procedure (sender:tObject;aErrorMsg:String) of object;
+
 {$IFDEF ANDROID}
 
 type
@@ -72,6 +75,7 @@ type
       fMusic:tMediaPlayer;
       fMusicFile:string;
       fMusicPlaying:boolean;
+      fMusicError:tMusicError_Event;
       {$IFDEF ANDROID}
       fJAudioMgr:JAudioManager;
       fJPool:JSoundPool;
@@ -83,6 +87,7 @@ type
       function  GetCount:integer;
       procedure SetMusicPlaying(aPlaying:boolean);
       procedure SetMusicFile(aFile:string);
+      procedure DoMusicError(aMsg:String);
     Public
       Constructor Create;
       Destructor  Destroy;override;
@@ -95,6 +100,7 @@ type
      {$IFDEF ANDROID}
       property  OnLoadCompleted:TSoundLoadedEvent read fOnPlatformLoadComplete write fOnPlatformLoadComplete;
       {$ENDIF}
+      property OnMusicError:tMusicError_Event read fMusicError write fMusicError;
       property CountSounds:Integer read GetCount;
       property MusicFile:string read fMusicFile write SetMusicFile;
       property MusicPlaying:boolean read fMusicPlaying write SetMusicPlaying;
@@ -344,18 +350,35 @@ procedure TGameSound.SetMusicPlaying(aPlaying: Boolean);
 begin
   if aPlaying=fMusicPlaying then exit;
   fMusicPlaying:=aPlaying;
+try
   if fMusic.FileName<>'' then
      if fMusicPlaying then
          fMusic.Play else fMusic.Stop;
+  except on e:exception do
+    begin
+      DoMusicError(e.Message);
+    end;
+end;
 end;
 
 procedure TGameSound.SetMusicFile(aFile: string);
 begin
   if aFile=fMusicFile then exit;
   fMusicFile:=aFile;
+try
   if fMusic.State =tMediaState.Playing then fMusic.Stop;
   fMusic.Clear;
   fMusic.FileName:=fMusicFile;
+  except on e:exception do
+    begin
+      DoMusicError(e.Message);
+    end;
+end;
+end;
+
+procedure TGameSound.DoMusicError(aMsg:String);
+begin
+  if Assigned(fMusicError) then fMusicError(self,aMsg);
 end;
 
 end.
