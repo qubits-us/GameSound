@@ -121,13 +121,13 @@ begin
       attribBuilder.setContentType(CT_SONIF);
       attribs:=attribBuilder.build;
       poolBuilder:=tJSoundPool_Builder.JavaClass.init;
-      poolBuilder.setMaxStreams(4);
+      poolBuilder.setMaxStreams(MAX_STREAMS);
       poolBuilder.setAudioAttributes(attribs);
       fJPool := PoolBuilder.build;
       attribBuilder:=nil;
       PoolBuilder:=nil;
      end else
-        fJPool := TJSoundPool.JavaClass.init(4,TJAudioManager.JavaClass.STREAM_MUSIC, 0);
+        fJPool := TJSoundPool.JavaClass.init(MAX_STREAMS,TJAudioManager.JavaClass.STREAM_MUSIC, 0);
    //create our listener
     fSoundLoadedListener:=TSoundLoadedListener.Create;
     // set the listener callback
