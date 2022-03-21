@@ -1,0 +1,60 @@
+object MainFrm: TMainFrm
+  Left = 0
+  Top = 0
+  Caption = 'Sound Test'
+  ClientHeight = 309
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  OnClose = FormClose
+  DesignerMasterStyle = 0
+  object btnCreate: TButton
+    Position.X = 48.000000000000000000
+    Position.Y = 248.000000000000000000
+    TabOrder = 0
+    Text = 'Create'
+    OnClick = btnCreateClick
+  end
+  object btnLoad: TButton
+    Position.X = 152.000000000000000000
+    Position.Y = 248.000000000000000000
+    TabOrder = 1
+    Text = 'Load'
+    OnClick = btnLoadClick
+  end
+  object btnPlay: TButton
+    Position.X = 248.000000000000000000
+    Position.Y = 248.000000000000000000
+    TabOrder = 2
+    Text = 'Play'
+    OnClick = btnPlayClick
+  end
+  object memDisplay: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    Position.X = 32.000000000000000000
+    Position.Y = 16.000000000000000000
+    Size.Width = 441.000000000000000000
+    Size.Height = 169.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Viewport.Width = 437.000000000000000000
+    Viewport.Height = 165.000000000000000000
+  end
+  object btnBGStart: TButton
+    Position.X = 360.000000000000000000
+    Position.Y = 248.000000000000000000
+    TabOrder = 4
+    Text = 'BG Start'
+    OnClick = btnBGStartClick
+  end
+  object btnBGStop: TButton
+    Position.X = 464.000000000000000000
+    Position.Y = 248.000000000000000000
+    TabOrder = 5
+    Text = 'BG Stop'
+    OnClick = btnBGStopClick
+  end
+end
