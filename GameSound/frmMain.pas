@@ -3,7 +3,7 @@ unit frmMain;
 interface
 
 uses
-  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,System.IOUtils,
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,System.IOUtils,System.NetEncoding,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Memo.Types, FMX.ScrollBox,
   FMX.Memo,FMX.TextLayout.GPU,uGameSound;
 
@@ -15,6 +15,8 @@ type
     memDisplay: TMemo;
     btnBGStart: TButton;
     btnBGStop: TButton;
+    btnEVol: TButton;
+    btnMVol: TButton;
     procedure btnCreateClick(Sender: TObject);
     procedure btnLoadClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -24,6 +26,8 @@ type
     procedure btnBGStopClick(Sender: TObject);
     procedure OnSoundLoaded(Sender:tObject;aSoundID:integer;aStatus:integer);
     procedure OnMusicError(Sender:TObject;aErrorMsg:String);
+    procedure btnMVolClick(Sender: TObject);
+    procedure btnEVolClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -104,6 +108,43 @@ end;
 
 end;
 
+procedure TMainFrm.btnEVolClick(Sender: TObject);
+var
+aVol:integer;
+begin
+//effects vol
+aVol:=btnEVol.Tag;
+  inc(aVol);
+  if aVol>3 then aVol:=0;
+  btnEVol.Tag:=aVol;
+    case aVol of
+    0:begin
+       btnEVol.Text:='Max';
+       if assigned(GameSound) then
+        begin
+         GameSound.EffectsVol:=MAX_VOL;
+         GameSound.PlayEffects:=true;
+        end;
+      end;
+    1:begin
+       btnEVol.Text:='Mid';
+       if assigned(GameSound) then
+         GameSound.EffectsVol:=MID_VOL;
+      end;
+    2:begin
+       btnEVol.Text:='Min';
+       if assigned(GameSound) then
+         GameSound.EffectsVol:=MIN_VOL;
+      end;
+    3:begin
+       btnEVol.Text:='Muted';
+       if assigned(GameSound) then
+         GameSound.PlayEffects:=true;
+      end;
+    end;
+
+end;
+
 procedure TMainFrm.btnLoadClick(Sender: TObject);
 var
 aPath:String;
@@ -129,7 +170,37 @@ if Assigned(GameSound) then
 end;
 
 
-procedure TMainFRm.OnSoundLoaded(Sender: TObject; aSoundID: Integer; aStatus: Integer);
+procedure TMainFrm.btnMVolClick(Sender: TObject);
+var
+aVol:integer;
+begin
+//music vol
+aVol:=btnMVol.Tag;
+  inc(aVol);
+  if aVol>2 then aVol:=0;
+  btnMVol.Tag:=aVol;
+    case aVol of
+    0:begin
+       btnMVol.Text:='Max';
+       if assigned(GameSound) then
+        begin
+         GameSound.MusicVol:=MAX_VOL;
+        end;
+      end;
+    1:begin
+       btnMVol.Text:='Mid';
+       if assigned(GameSound) then
+         GameSound.MusicVol:=MID_VOL;
+      end;
+    2:begin
+       btnMVol.Text:='Min';
+       if assigned(GameSound) then
+         GameSound.MusicVol:=MIN_VOL;
+      end;
+    end;
+end;
+
+procedure TMainFrm.OnSoundLoaded(Sender: TObject; aSoundID: Integer; aStatus: Integer);
 begin
 
   memDisplay.Lines.Insert(0,'Sound Loaded ID:'+IntToStr(aSoundID)+' Status:'+IntToStr(aStatus));
@@ -143,6 +214,7 @@ if Assigned(GameSound) then
       GameSound.Play(0);
 
 end;
+
 
 procedure TMainFrm.FormClose(Sender: TObject; var Action: TCloseAction);
 begin

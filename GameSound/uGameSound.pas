@@ -1,7 +1,7 @@
 {Unit GameSound -provides basic background mucis and game sounds.
            Compatible with Windows and Android
 
-  created:3/21/22 -q
+  created:3/21/22 -q  www.qubits.us
 
 Acknowledgements/Credits - This was a derived work from clos examination of the Audio Manager- Author Jim McKeeth
                            Also Audio Manager released by FMXExpress.com
@@ -13,7 +13,7 @@ Acknowledgements/Credits - This was a derived work from clos examination of the 
 Uses new PoolBuilder for lollipops and higher..
 
 
-
+           be it harm none, do as you wish..
 
            }
 
@@ -36,8 +36,8 @@ uses
 const
    MAX_STREAMS = 4;
    MAX_VOL     = 1;
-   MID_VOL     = 0.75;
-   MIN_VOL     = 0.55;
+   MID_VOL     = 0.5;
+   MIN_VOL     = 0.25;
    USAGE_GAME  = 14;
    CT_SONIF    = 4;
    LOLLIPOP    = 21;
