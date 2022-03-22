@@ -234,6 +234,8 @@ var
 i : integer;
 aSound:tSound;
 begin
+fCrit.Enter;
+ try
   try
     for i := 0 to fSounds.Count -1 do
     begin
@@ -249,6 +251,9 @@ begin
     On E:Exception do
       Raise Exception.create('Game Sound Loaded : '+E.message);
   end;
+ finally
+   fCrit.Leave;
+ end;
 end;
 
 
@@ -350,7 +355,7 @@ fCrit.Enter;
             begin
               CurrVol := fJAudioMgr.getStreamVolume(TJAudioManager.JavaClass.STREAM_MUSIC);
               MaxVol := fJAudioMgr.getStreamMaxVolume(TJAudioManager.JavaClass.STREAM_MUSIC);
-              MaxVol := MaxVol / fEffectVolume;
+              MaxVol := MaxVol / fEffectsVolume;
               WantVol := CurrVol / MaxVol;
               fJPool.Play(aSound.Id, WantVol, WantVol, 1, 0, 1);
             end;
