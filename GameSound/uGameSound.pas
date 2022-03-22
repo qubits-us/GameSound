@@ -22,7 +22,7 @@ unit uGameSound;
 
 interface
 uses
-  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Threading, System.Generics.Collections, FMX.Media
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Threading, System.Generics.Collections, System.SyncObjs, FMX.Media
   {$IFDEF ANDROID}
     ,Androidapi.jni.media, FMX.Helpers.Android, Androidapi.jni.JavaTypes, Androidapi.JNI.GraphicsContentViewText,Androidapi.JNIBridge,
     Androidapi.helpers, Androidapi.JNI.App, Androidapi.JNI.Os
@@ -36,6 +36,8 @@ uses
 const
    MAX_STREAMS = 4;
    MAX_VOL     = 1;
+   MID_VOL     = 0.75;
+   MIN_VOL     = 0.55;
    USAGE_GAME  = 14;
    CT_SONIF    = 4;
    LOLLIPOP    = 21;
@@ -71,7 +73,11 @@ type
 
   TGameSound=Class
     Private
+      fCrit:tCriticalSection;
       fSounds:TList<TSound>;
+      fEffectsVolume:single;
+      fPlayEffects:boolean;
+      fMusicVolume:single;
       fMusic:tMediaPlayer;
       fMusicFile:string;
       fMusicPlaying:boolean;
@@ -85,9 +91,18 @@ type
       {$ENDIF}
       procedure SetLoaded(aSampleId:integer);
       function  GetCount:integer;
+      procedure SetEffectsVol(aVol:single);
+      function  GetEffectsVol:single;
+      procedure SetPlayEffects(aVal:Boolean);
+      function  GetPlayEffects:boolean;
+
       procedure SetMusicPlaying(aPlaying:boolean);
+      function  GetMusicPlaying:boolean;
       procedure SetMusicFile(aFile:string);
+      function  GetMusicFile:String;
       procedure DoMusicError(aMsg:String);
+      procedure SetMusicVol(aVol:single);
+      function  GetMusicVol:single;
     Public
       Constructor Create;
       Destructor  Destroy;override;
@@ -102,8 +117,11 @@ type
       {$ENDIF}
       property OnMusicError:tMusicError_Event read fMusicError write fMusicError;
       property CountSounds:Integer read GetCount;
-      property MusicFile:string read fMusicFile write SetMusicFile;
-      property MusicPlaying:boolean read fMusicPlaying write SetMusicPlaying;
+      property EffectsVol:single read GetEffectsVol write SetEffectsVol;
+      property PlayEffects:boolean read GetPlayEffects write SetPlayEffects;
+      property MusicVol:single read GetMusicVol write SetMusicVol;
+      property MusicFile:string read GetMusicFile write SetMusicFile;
+      property MusicPlaying:boolean read GetMusicPlaying write SetMusicPlaying;
   end;
 
   var
@@ -132,9 +150,14 @@ attribs:JAudioAttributes;
   {$ENDIF}
 begin
   try
+    fCrit:=tCriticalSection.Create;
+    fMusicVolume:=MAX_VOL;
+    fEffectsVolume:=MAX_VOL;
     //background music player
     fMusic:=tMediaPlayer.Create(nil);
     fMusic.Volume:=MAX_VOL;
+    fPlayEffects:=true;
+
 
     fSounds := TList<TSound>.Create;
   {$IFDEF ANDROID}
@@ -180,6 +203,7 @@ begin
     end;
     fSounds.Free;
     fMusic.Free;
+    fCrit.Free;
 
     {$IFDEF ANDROID}
       fJPool := nil;
@@ -233,6 +257,8 @@ var
   aSound:tSound;
 begin
   Result:=-1;
+  fCrit.Enter;
+ try
   try
     aSound.FileName:=aFileName;
     aSound.SoundName:=aName;
@@ -248,12 +274,17 @@ begin
     On E:Exception do
       Raise Exception.create('Game Sound Add : '+E.message);
   end;
+ finally
+   fCrit.Leave;
+ end;
 end;
 
 procedure TGameSound.Delete(aIndex: integer);
 var
 aSound:tSound;
 begin
+fCrit.Enter;
+ try
   try
     if aIndex < fSounds.Count then
     begin
@@ -267,12 +298,17 @@ begin
     On E:Exception do
       Raise Exception.create('Game Sound Delete : '+E.message);
   end;
+ finally
+   fCrit.Leave;
+ end;
 end;
 
 procedure TGameSound.Delete(aName: String);
 var
 i:integer;
 begin
+fCrit.Enter;
+ try
   try
     for i:=0 to fSounds.Count -1 do
     begin
@@ -286,6 +322,9 @@ begin
     On E:Exception do
       Raise Exception.create('Game Sound Delete : '+E.message);
   end;
+ finally
+   fCrit.Leave;
+ end;
 end;
 
 
@@ -296,51 +335,118 @@ var
     CurrVol,MaxVol,WantVol:Double;
   {$ENDIF}
 begin
-  try
-    if aIndex<fSounds.Count then
+fCrit.Enter;
+ try
+    if fPlayEffects then
     begin
-      aSound:=fSounds[aIndex];
-      {$IFDEF ANDROID}
-        if Assigned(fJAudioMgr) then
+      try
+        if aIndex < fSounds.Count then
         begin
-          CurrVol :=fJAudioMgr.getStreamVolume(TJAudioManager.JavaClass.STREAM_MUSIC);
-          MaxVol  :=fJAudioMgr.getStreamMaxVolume(TJAudioManager.JavaClass.STREAM_MUSIC);
-          WantVol :=CurrVol/MaxVol;
-          fJPool.play(aSound.Id,WantVol, WantVol,1,0,1);
+          aSound := fSounds[aIndex];
+{$IFDEF ANDROID}
+          if aSound.Loaded then
+          begin
+            if Assigned(fJAudioMgr) then
+            begin
+              CurrVol := fJAudioMgr.getStreamVolume(TJAudioManager.JavaClass.STREAM_MUSIC);
+              MaxVol := fJAudioMgr.getStreamMaxVolume(TJAudioManager.JavaClass.STREAM_MUSIC);
+              MaxVol := MaxVol / fEffectVolume;
+              WantVol := CurrVol / MaxVol;
+              fJPool.Play(aSound.Id, WantVol, WantVol, 1, 0, 1);
+            end;
+          end;
+{$ENDIF}
+{$IFDEF MSWINDOWS}
+          sndPlaySound(Pchar(aSound.FileName), SND_NODEFAULT Or SND_ASYNC);
+{$ENDIF}
         end;
-      {$ENDIF}
-      {$IFDEF MSWINDOWS}
-        sndPlaySound(Pchar(aSound.FileName), SND_NODEFAULT Or SND_ASYNC);
-      {$ENDIF}
+      except
+        On E: Exception do
+          Raise Exception.Create('Game Sound Playback : ' + E.message);
+      end;
     end;
-  except
-    On E:Exception do
-      Raise Exception.create('Game Sound Playback : '+E.message);
-  end;
+  finally
+    fCrit.Leave;
+ end;
 end;
 
 
 procedure TGameSound.Play(aName: String);
 var i : integer;
 begin
+fCrit.Enter;
   try
-    for i := 0 to fSounds.Count -1 do
+    if fPlayEffects then
     begin
-      if CompareText(TSound(fSounds[i]).SoundName , aName) = 0 then
-      begin
-        Play(i);
-        Break;
+      try
+        for i := 0 to fSounds.Count - 1 do
+        begin
+          if CompareText(TSound(fSounds[i]).SoundName, aName) = 0 then
+          begin
+            Play(i);
+            Break;
+          end;
+        end;
+      except
+        On E: Exception do
+          Raise Exception.Create('Game Sound Playback : ' + E.message);
       end;
     end;
-  except
-    On E:Exception do
-      Raise Exception.create('Game Sound Playback : '+E.message);
+  finally
+    fCrit.Leave;
   end;
 end;
 
 function TGameSound.GetCount: integer;
 begin
+fCrit.Enter;
+try
   result:=fSounds.Count;
+finally
+  fCrit.Leave;
+end;
+end;
+
+procedure TGameSound.SetEffectsVol(aVol: Single);
+begin
+fCrit.Enter;
+ try
+  if aVol>MAX_VOL then aVol:=MAX_VOL;
+  if aVol<MIN_VOL then aVol:=MIN_VOL;
+  fEffectsVolume:=aVol;
+ finally
+   fCrit.Leave;
+ end;
+end;
+
+function TGameSound.GetEffectsVol: Single;
+begin
+  fCrit.Enter;
+    try
+      result:=fEffectsVolume;
+    finally
+     fCrit.Leave;
+    end;
+end;
+
+procedure TGameSound.SetPlayEffects(aVal: Boolean);
+begin
+  fCrit.Enter;
+    try
+      fPlayEffects:=aVal;
+    finally
+     fCrit.Leave;
+    end;
+end;
+
+function TGameSound.GetPlayEffects: Boolean;
+begin
+    fCrit.Enter;
+      try
+        result:=fPlayEffects;
+      finally
+       fCrit.Leave;
+      end;
 end;
 
 
@@ -348,6 +454,8 @@ end;
 
 procedure TGameSound.SetMusicPlaying(aPlaying: Boolean);
 begin
+fCrit.Enter;
+try
   if aPlaying=fMusicPlaying then exit;
   fMusicPlaying:=aPlaying;
 try
@@ -359,21 +467,72 @@ try
       DoMusicError(e.Message);
     end;
 end;
+finally
+  fCrit.Leave;
+end;
+end;
+
+function TGameSound.GetMusicPlaying: Boolean;
+begin
+  fCrit.Enter;
+   try
+     result:=fMusicPlaying;
+   finally
+    fCrit.Leave;
+   end;
+end;
+
+procedure TGameSound.SetMusicVol(aVol: Single);
+begin
+fCrit.Enter;
+ try
+  if aVol>MAX_VOL then aVol:=MAX_VOL;
+  if aVol<MIN_VOL then aVol:=MIN_VOL;
+  fMusicVolume:=aVol;
+  fMusic.Volume:=fMusicVolume;
+ finally
+   fCrit.Leave;
+ end;
+end;
+
+function TGameSound.GetMusicVol: Single;
+begin
+  fCrit.Enter;
+    try
+      result:=fMusicVolume;
+    finally
+     fCrit.Leave;
+    end;
 end;
 
 procedure TGameSound.SetMusicFile(aFile: string);
 begin
+fCrit.Enter;
+ Try
   if aFile=fMusicFile then exit;
   fMusicFile:=aFile;
-try
-  if fMusic.State =tMediaState.Playing then fMusic.Stop;
-  fMusic.Clear;
-  fMusic.FileName:=fMusicFile;
-  except on e:exception do
-    begin
-      DoMusicError(e.Message);
-    end;
+  try
+    if fMusic.State =tMediaState.Playing then fMusic.Stop;
+     fMusic.Clear;
+     fMusic.FileName:=fMusicFile;
+     except on e:exception do
+      begin
+        DoMusicError(e.Message);
+      end;
+  end;
+ Finally
+   fCrit.Leave;
+ End;
 end;
+
+function TGameSound.GetMusicFile: string;
+begin
+  fCrit.Enter;
+   try
+    result:=fMusicFile;
+   finally
+    fCrit.Leave;
+   end;
 end;
 
 procedure TGameSound.DoMusicError(aMsg:String);
